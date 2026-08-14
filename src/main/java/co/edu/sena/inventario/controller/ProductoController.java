@@ -18,11 +18,11 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 public class ProductoController {
 
   private final List<Producto> productos = new ArrayList<>( List.of( 
-    new Producto(1L, "Papa pastusa", 2500.0, 50),
-    new Producto(2L, "Tomate", 3200.0, 30),
-    new Producto(3L, "Fresa", 8500.0, 20),
-    new Producto(4L, "Mango", 4500.0, 24),
-    new Producto(5L, "Zanahoria", 3900.0, 42)
+    new Producto(1L, "Papa pastusa", 2500.0, 50, "Tuberculo"),
+    new Producto(2L, "Tomate", 3200.0, 30,"Vegetal"),
+    new Producto(3L, "Fresa", 8500.0, 20, "Fruta"),
+    new Producto(4L, "Mango", 4500.0, 24, "Fruta"),
+    new Producto(5L, "Zanahoria", 3900.0, 42, "Vegetal")
   )
 );
 
@@ -80,5 +80,44 @@ public String eliminarProducto(@PathVariable Long id) {
     return "Producto no encontrado";
 }
 
+@GetMapping("/categoria/{categoria}")
+public List<Producto> buscarCategoria(@PathVariable String categoria) {
+
+    List<Producto> resultado = new ArrayList<>();
+
+    for (Producto producto : productos) {
+
+        if (producto.getCategoria().equalsIgnoreCase(categoria)) {
+            resultado.add(producto);
+        }
+    }
+
+    return resultado;
+}
+
+@PutMapping("/{id}/comprar/{cantidad}")
+public String comprarProducto(@PathVariable Long id, @PathVariable Integer cantidad) {
+    
+    for (Producto producto : productos) {
+
+        if (producto.getId().equals(id)) {
+
+            if (cantidad <= producto.getCantidad()) {
+
+                int nuevaCantidad = producto.getCantidad() - cantidad;
+
+                producto.setCantidad(nuevaCantidad);
+
+                return "Compra realizada. Quedan "
+                        + nuevaCantidad + " unidades de "
+                        + producto.getNombre();
+            }
+
+            return "No hay suficiente cantidad disponible";
+        }
+    }
+
+    return "Producto no encontrado";
+}
 
 }

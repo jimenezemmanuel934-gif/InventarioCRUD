@@ -5,18 +5,21 @@ public class Producto {
     private String nombre;
     private Double precio;
     private Integer cantidad;
+    private String categoria;
 
-public Producto(Long id, String nombre, Double precio, Integer cantidad) {
+public Producto(Long id, String nombre, Double precio, Integer cantidad, String categoria) {
     this.id = id;
     this.nombre = nombre;
     this.precio = precio;
     this.cantidad = cantidad;
+    this.categoria = categoria;
 }
 
 public Long getId() { return id; }
 public String getNombre() { return nombre; }
 public Double getPrecio() { return precio; }
 public Integer getCantidad() { return cantidad; }
+public String getCategoria() { return categoria; }
 
 public void setNombre(String nombre) { this.nombre = nombre; }
 
