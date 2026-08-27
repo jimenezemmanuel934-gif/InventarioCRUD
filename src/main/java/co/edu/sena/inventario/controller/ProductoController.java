@@ -16,266 +16,286 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import co.edu.sena.inventario.model.ResumenInventario;
+import co.edu.sena.inventario.service.ProductoService;
 
 
 @RestController
 @RequestMapping("/productos")
 public class ProductoController {
 
-  private final List<Producto> productos = new ArrayList<>( List.of( 
-    new Producto(1L, "Papa pastusa", 2500.0, 8, "Tuberculo"),
-    new Producto(2L, "Tomate", 3200.0, 30,"Vegetal"),
-    new Producto(3L, "Fresa", 8500.0, 20, "Fruta"),
-    new Producto(4L, "Mango", 4500.0, 24, "Fruta"),
-    new Producto(5L, "Zanahoria", 3900.0, 42, "Vegetal")
-  )
-);
+    private final ProductoService productoService;
 
-@GetMapping
-public List<Producto> listarProductos() {
-    return productos;
-}
+    public ProductoController(ProductoService productoService) {
+        this.productoService = productoService;
+    }
 
 
+    @GetMapping
+    public List<Producto> listarProductos() {
+        return productoService.listarProductos();
+    }
 
-@GetMapping("/{id}")
-public ResponseEntity<?> buscarProducto(@PathVariable Long id) {
-    for (Producto producto : productos) {
-        if (producto.getId().equals(id)) {
-            return ResponseEntity.ok(producto);
+
+    //BUSCAR PRODUCTO POR ID
+    @GetMapping("/{id}")
+    public ResponseEntity<?> buscarProducto(@PathVariable Long id) {
+
+        Producto producto = productoService.buscarPorId(id);
+
+        if (producto == null) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body("Producto no encontrado");
         }
-    }
-    return ResponseEntity.status(HttpStatus.NOT_FOUND)
-       .body("Producto no encontrado ");
-}
 
-
-
-
-
-
-
-@PostMapping
-public ResponseEntity<?> crearProducto(@RequestBody Producto producto) {
-
-    String error = validarProducto(producto);
-
-    if (error != null) {
-        return ResponseEntity.badRequest().body(error);
+        return ResponseEntity.ok(producto);
     }
 
-    productos.add(producto);
 
-    return ResponseEntity.status(HttpStatus.CREATED).body(producto);
-}
+    //INGRESAR NUEVO PRODUCTO
+    @PostMapping
+    public ResponseEntity<?> crearProducto(@RequestBody Producto producto) {
 
+        String error = validarProducto(producto);
 
-
-
-@PutMapping("/{id}")
-public Producto actualizarProducto(@PathVariable Long id, @RequestBody Producto nuevoProducto) {
-    for (Producto producto : productos) {
-        if (producto.getId().equals(id)) {
-
-            producto.setNombre(nuevoProducto.getNombre());
-            producto.setPrecio(nuevoProducto.getPrecio());
-            producto.setCantidad(nuevoProducto.getCantidad());
-
-            return producto;
+        if (error != null) {
+            return ResponseEntity.badRequest().body(error);
         }
+
+        productoService.agregarProducto(producto);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(producto);
     }
-    return null;
-    
-}
 
 
+    //ACTUALIZAR PRODUCTO
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizarProducto(
+            @PathVariable Long id,
+            @RequestBody Producto nuevoProducto) {
 
+        Producto producto = productoService.buscarPorId(id);
 
-@DeleteMapping("/{id}")
-public String eliminarProducto(@PathVariable Long id) {
-
-    for (Producto producto : productos) {
-
-        if (producto.getId().equals(id)) {
-            productos.remove(producto);
-
-            return "Producto eliminado correctamente";
+        if (producto == null) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body("Producto no encontrado");
         }
+
+        producto.setNombre(nuevoProducto.getNombre());
+        producto.setPrecio(nuevoProducto.getPrecio());
+        producto.setCantidad(nuevoProducto.getCantidad());
+        producto.setCategoria(nuevoProducto.getCategoria());
+
+        return ResponseEntity.ok(producto);
     }
 
-    return "Producto no encontrado";
-}
 
+    //BORRAR PRODUCTO
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminarProducto(@PathVariable Long id) {
 
+        Producto producto = productoService.buscarPorId(id);
 
-
-@GetMapping("/categoria")
-public List<Producto> buscarCategoria(@RequestParam String nombre) {
-
-    List<Producto> resultado = new ArrayList<>();
-
-    for (Producto producto : productos) {
-
-        if (producto.getCategoria().equalsIgnoreCase(nombre)) {
-            resultado.add(producto);
+        if (producto == null) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body("Producto no encontrado");
         }
+
+        productoService.eliminarProducto(id);
+
+        return ResponseEntity.ok("Producto eliminado correctamente");
     }
 
-    return resultado;
-}
+
+    //BUSCAR POR CATEGORIA
+    @GetMapping("/categoria")
+    public List<Producto> buscarCategoria(@RequestParam String nombre) {
+
+        List<Producto> resultado = new ArrayList<>();
+
+        for (Producto producto : productoService.listarProductos()) {
+
+            if (producto.getCategoria().equalsIgnoreCase(nombre)) {
+                resultado.add(producto);
+            }
+        }
+
+        return resultado;
+    }
 
 
+    //COMPRAR UNA CANTIDAD
+    @PutMapping("/{id}/comprar/{cantidad}")
+    public String comprarProducto(
+            @PathVariable Long id,
+            @PathVariable Integer cantidad) {
+
+        Producto producto = productoService.buscarPorId(id);
+
+        if (producto == null) {
+            return "Producto no encontrado";
+        }
+
+        if (cantidad <= 0) {
+            return "La cantidad debe ser mayor que cero";
+        }
+
+        if (cantidad <= producto.getCantidad()) {
+
+            int nuevaCantidad =
+                    producto.getCantidad() - cantidad;
+
+            producto.setCantidad(nuevaCantidad);
+
+            return "Compra realizada. Quedan "
+                    + nuevaCantidad + " unidades de "
+                    + producto.getNombre();
+        }
+
+        return "No hay suficiente cantidad disponible";
+    }
 
 
-@PutMapping("/{id}/comprar/{cantidad}")
-public String comprarProducto(@PathVariable Long id, @PathVariable Integer cantidad) {
-    
-    for (Producto producto : productos) {
+    //BUSCAR POR NOMBRE
+    @GetMapping("/buscar")
+    public List<Producto> buscarPorNombre(
+            @RequestParam String nombre) {
 
-        if (producto.getId().equals(id)) {
+        List<Producto> resultado = new ArrayList<>();
 
-            if (cantidad <= producto.getCantidad()) {
+        for (Producto producto : productoService.listarProductos()) {
 
-                int nuevaCantidad = producto.getCantidad() - cantidad;
+            if (producto.getNombre().equalsIgnoreCase(nombre)) {
+                resultado.add(producto);
+            }
+        }
 
-                producto.setCantidad(nuevaCantidad);
+        return resultado;
+    }
 
-                return "Compra realizada. Quedan "
-                        + nuevaCantidad + " unidades de "
-                        + producto.getNombre();
+
+    //PRECIO MAYOR
+    @GetMapping("/precio")
+    public List<Producto> buscarPorPrecio(
+            @RequestParam Double maximo) {
+
+        List<Producto> resultado = new ArrayList<>();
+
+        for (Producto producto : productoService.listarProductos()) {
+
+            if (producto.getPrecio() <= maximo) {
+                resultado.add(producto);
+            }
+        }
+
+        return resultado;
+    }
+
+
+    //VALIDACIONES DE BUSQUEDA
+    private String validarProducto(Producto producto) {
+
+        if (producto.getNombre() == null
+                || producto.getNombre().trim().isEmpty()) {
+
+            return "El nombre no puede estar vacío";
+        }
+
+        if (producto.getPrecio() == null
+                || producto.getPrecio() <= 0) {
+
+            return "El precio debe ser mayor que cero";
+        }
+
+        if (producto.getCantidad() == null
+                || producto.getCantidad() < 0) {
+
+            return "La cantidad no puede ser menor que cero";
+        }
+
+        if (producto.getCategoria() == null
+                || producto.getCategoria().trim().isEmpty()) {
+
+            return "La categoria no puede estar vacía";
+        }
+
+        return null;
+    }
+
+
+    //BUSCAR POR STOCK MAS BAJO
+    @GetMapping("/stock-bajo")
+    public List<Producto> stockBajo() {
+
+        List<Producto> resultado = new ArrayList<>();
+
+        for (Producto producto : productoService.listarProductos()) {
+
+            if (producto.getCantidad() < 10) {
+                resultado.add(producto);
+            }
+        }
+
+        return resultado;
+    }
+
+
+    //RESUMEN DE INVENTARIO
+    @GetMapping("/resumen")
+    public ResumenInventario resumen() {
+
+        List<Producto> productos =
+                productoService.listarProductos();
+
+        int totalProductos = productos.size();
+        int stockBajo = 0;
+
+        Producto masCostoso = productos.get(0);
+        Producto masEconomico = productos.get(0);
+
+        for (Producto producto : productos) {
+
+            if (producto.getCantidad() < 10) {
+                stockBajo++;
             }
 
-            return "No hay suficiente cantidad disponible";
+            if (producto.getPrecio() > masCostoso.getPrecio()) {
+                masCostoso = producto;
+            }
+
+            if (producto.getPrecio() < masEconomico.getPrecio()) {
+                masEconomico = producto;
+            }
         }
+
+        return new ResumenInventario(
+                totalProductos,
+                stockBajo,
+                masCostoso.getNombre(),
+                masEconomico.getNombre()
+        );
     }
 
-    return "Producto no encontrado";
+
+    //BUSCAR POR CATEGORIA
+    @GetMapping("/filtrar")
+    public List<Producto> filtrarProductos(
+            @RequestParam String categoria,
+            @RequestParam Double precioMaximo) {
+
+        List<Producto> resultado = new ArrayList<>();
+
+        for (Producto producto : productoService.listarProductos()) {
+
+            if (producto.getCategoria().equalsIgnoreCase(categoria)
+                    && producto.getPrecio() <= precioMaximo) {
+
+                resultado.add(producto);
+            }
+        }
+
+        return resultado;
+    }
 }
-
-
-
-@GetMapping("/buscar")
-public List<Producto> buscarPorNombre(@RequestParam String nombre) {
-
-    List<Producto> resultado = new ArrayList<>();
-
-    for (Producto producto : productos) {
-
-        if (producto.getNombre().equalsIgnoreCase(nombre)) {
-            resultado.add(producto);
-        }
-    }
-    return resultado;
-}
-
-
-
-@GetMapping("/precio")
-public List<Producto> buscarPorPrecio(@RequestParam Double maximo) {
-
-    List<Producto> resultado = new ArrayList<>();
-
-    for (Producto producto : productos) {
-
-        if (producto.getPrecio() <= maximo) {
-            resultado.add(producto);
-        }
-    }
-    return resultado;
-}
-
-
-
-private String validarProducto(Producto producto) {
-
-    if (producto.getNombre() == null || producto.getNombre().trim().isEmpty()) {
-        return "El nombre no puede estar vacío";
-    }
-
-    if (producto.getPrecio() == null || producto.getPrecio() <= 0) {
-        return "El precio debe ser mayor que cero";
-    }
-
-    if (producto.getCantidad() == null || producto.getCantidad() < 0) {
-        return "La cantidad no puede ser menor que cero";
-    }
-
-    if (producto.getCategoria() == null || producto.getCategoria().trim().isEmpty()) {
-        return "La categoria no puede estar vacía";
-    }
-
-    return null;
-}
-
-
-
-@GetMapping("/stock-bajo")
- public List<Producto> stockBajo() {
- List<Producto> resultado = new ArrayList<>();
-
-    for (Producto producto : productos) {
-
-        if (producto.getCantidad() < 10) {
-            resultado.add(producto);
-        }
-    }
-    return resultado;
-}
-
-
-
-@GetMapping("/resumen")
-public ResumenInventario resumen() {
-
-    int totalProductos = productos.size();
-    int stockBajo = 0;
-
-    Producto masCostoso = productos.get(0);
-    Producto masEconomico = productos.get(0);
-
-    for (Producto producto : productos) {
-
-        if (producto.getCantidad() < 10) {
-            stockBajo++;
-        }
-
-        if (producto.getPrecio() > masCostoso.getPrecio()) {
-            masCostoso = producto;
-        }
-
-        if (producto.getPrecio() < masEconomico.getPrecio()) {
-            masEconomico = producto;
-        }
-    }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
-    return new ResumenInventario(
-            totalProductos,
-            stockBajo,
-            masCostoso.getNombre(),
-            masEconomico.getNombre()
-    );
-}   
-
-
-@GetMapping("/filtrar")
-public List<Producto> filtrarProductos(
-        @RequestParam String categoria,
-        @RequestParam Double precioMaximo) {
-
-    List<Producto> resultado = new ArrayList<>();
-
-    for (Producto producto : productos) {
-
-        if (producto.getCategoria().equalsIgnoreCase(categoria)
-                && producto.getPrecio() <= precioMaximo) {
-
-            resultado.add(producto);
-        }
-
-    }
-
-    return resultado;
-}
-}
-
-
-
