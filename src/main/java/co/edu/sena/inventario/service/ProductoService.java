@@ -35,6 +35,22 @@ public class ProductoService {
     }
 
     public void agregarProducto(Producto producto) {
+
+        if (producto.getId() == null) {
+            throw new IllegalArgumentException(
+                "El ID del producto es obligatorio"
+            );
+        }
+
+        Producto existente = buscarPorId(producto.getId());
+
+        if (existente != null) {
+            throw new IllegalArgumentException(
+                "Ya existe un producto con el ID: "
+                + producto.getId()
+            );
+        }
+
         productos.add(producto);
     }
 

@@ -54,18 +54,32 @@ public class ProductoController {
 
     //INGRESAR NUEVO PRODUCTO
     @PostMapping
-    public ResponseEntity<?> crearProducto(@RequestBody Producto producto) {
+public ResponseEntity<?> crearProducto(@RequestBody Producto producto) {
 
-        String error = validarProducto(producto);
+    String error = validarProducto(producto);
 
-        if (error != null) {
-            return ResponseEntity.badRequest().body(error);
-        }
+    if (error != null) {
+        return ResponseEntity
+                .badRequest()
+                .body(error);
+    }
+
+    try {
 
         productoService.agregarProducto(producto);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(producto);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(producto);
+
+    } catch (IllegalArgumentException e) {
+
+        return ResponseEntity
+                .badRequest()
+                .body(e.getMessage());
     }
+}
+
 
 
     //ACTUALIZAR PRODUCTO
