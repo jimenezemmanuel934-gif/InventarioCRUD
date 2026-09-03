@@ -1,63 +1,47 @@
 package co.edu.sena.inventario.service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 
 import co.edu.sena.inventario.model.Producto;
+import co.edu.sena.inventario.repository.ProductoRepository;
 
 @Service
 public class ProductoService {
 
-    private final List<Producto> productos = new ArrayList<>(List.of(
-        new Producto(1L, "Papa pastusa", 2500.0, 8, "Tuberculo"),
-        new Producto(2L, "Tomate", 3200.0, 30, "Vegetal"),
-        new Producto(3L, "Fresa", 8500.0, 20, "Fruta"),
-        new Producto(4L, "Mango", 4500.0, 24, "Fruta"),
-        new Producto(5L, "Zanahoria", 3900.0, 42, "Vegetal")
-    ));
+    private final ProductoRepository productoRepository;
 
+    public ProductoService(ProductoRepository productoRepository) {
+        this.productoRepository = productoRepository;
+    }
+
+    //Consultar Todos
     public List<Producto> listarProductos() {
-        return productos;
+        return productoRepository.findAll();
     }
 
+    //Buscar por ID
     public Producto buscarPorId(Long id) {
-
-        for (Producto producto : productos) {
-
-            if (producto.getId().equals(id)) {
-                return producto;
-            }
-        }
-
-        return null;
+        return productoRepository.findById(id).orElse(null);
     }
 
+    //Crear Producto
     public void agregarProducto(Producto producto) {
+        if (producto.getId() !=null && productoRepository.existsById(producto.getId())) {
 
-        if (producto.getId() == null) {
             throw new IllegalArgumentException(
-                "El ID del producto es obligatorio"
+                "Ya existe un producto con el ID: " + producto.getId()
             );
         }
-
-        Producto existente = buscarPorId(producto.getId());
-
-        if (existente != null) {
-            throw new IllegalArgumentException(
-                "Ya existe un producto con el ID: "
-                + producto.getId()
-            );
-        }
-
-        productos.add(producto);
+        productoRepository.save(producto);
     }
 
+    //Eliminar producto
     public void eliminarProducto(Long id) {
-
-        productos.removeIf(producto ->
-            producto.getId().equals(id)
-        );
+        if (productoRepository.existsById(id)) {
+            productoRepository.deleteById(id);
+        }
     }
+
 }

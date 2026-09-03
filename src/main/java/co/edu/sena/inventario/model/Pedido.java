@@ -1,7 +1,17 @@
 package co.edu.sena.inventario.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+
+@Entity
 public class Pedido {
+     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+
     private String cliente;
     private Long productoID;
     private Integer cantidad;
@@ -12,8 +22,7 @@ public class Pedido {
 }
 
 
-    public Pedido(Long id, String cliente, Long productoID, Integer cantidad, String prioridad, String estado) {
-        this.id = id;
+    public Pedido(String cliente, Long productoID, Integer cantidad, String prioridad, String estado) {
         this.cliente = cliente;
         this.productoID = productoID;
         this.cantidad = cantidad;
