@@ -1,14 +1,27 @@
 package co.edu.sena.inventario.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+
+@Entity
 public class Producto {
-    private long id;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     private String nombre;
     private Double precio;
     private Integer cantidad;
     private String categoria;
 
-public Producto(Long id, String nombre, Double precio, Integer cantidad, String categoria) {
-    this.id = id;
+    //Constructor vacio requerido por JPA
+    public Producto(){}
+
+    //Constructo para crear productos
+public Producto(String nombre, Double precio, Integer cantidad, String categoria) {
     this.nombre = nombre;
     this.precio = precio;
     this.cantidad = cantidad;

@@ -4,19 +4,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 import co.edu.sena.inventario.model.Producto;
+import co.edu.sena.inventario.model.ResumenInventario;
+import co.edu.sena.inventario.service.ProductoService;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
-import co.edu.sena.inventario.model.ResumenInventario;
-import co.edu.sena.inventario.service.ProductoService;
+import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
@@ -30,6 +31,7 @@ public class ProductoController {
     }
 
 
+    //Listar Productos get/productos
     @GetMapping
     public List<Producto> listarProductos() {
         return productoService.listarProductos();
@@ -263,6 +265,14 @@ public ResponseEntity<?> crearProducto(@RequestBody Producto producto) {
         List<Producto> productos =
                 productoService.listarProductos();
 
+    //Si no hay productos, devolvemos resumen vacio
+    if(productos.isEmpty()){
+        return new ResumenInventario(
+            0,
+             0,
+                "No hay Productos",
+                 "No hay Productos");
+    }
         int totalProductos = productos.size();
         int stockBajo = 0;
 
@@ -293,7 +303,7 @@ public ResponseEntity<?> crearProducto(@RequestBody Producto producto) {
     }
 
 
-    //BUSCAR POR CATEGORIA
+    //BUSCAR POR CATEGORIA y precio maximo
     @GetMapping("/filtrar")
     public List<Producto> filtrarProductos(
             @RequestParam String categoria,
