@@ -26,9 +26,7 @@ public class PedidoService {
     }
 
 
-    // ==========================================
     // CREAR PEDIDO
-    // ==========================================
     public Pedido crearPedido(Pedido pedido) {
 
         validarPedido(pedido);
@@ -51,9 +49,94 @@ public class PedidoService {
     }
 
 
-    // ==========================================
+
+
+    // ACTUALIZAR PEDIDO
+public Pedido actualizarPedido(Long id, Pedido pedidoActualizado) {
+
+    Pedido pedidoExistente = buscarPedido(id);
+
+    // No permitir modificar pedidos despachados o cancelados
+    if (pedidoExistente.getEstado().equalsIgnoreCase("DESPACHADO")) {
+        throw new IllegalStateException(
+            "No se puede actualizar un pedido DESPACHADO"
+        );
+    }
+
+    if (pedidoExistente.getEstado().equalsIgnoreCase("CANCELADO")) {
+        throw new IllegalStateException(
+            "No se puede actualizar un pedido CANCELADO"
+        );
+    }
+
+    // Validar los nuevos datos
+    validarPedido(pedidoActualizado);
+
+    Producto producto = productoService.buscarPorId(
+        pedidoActualizado.getProductoID()
+    );
+
+    if (producto == null) {
+        throw new IllegalArgumentException(
+            "El producto no se encuentra en stock"
+        );
+    }
+
+    
+    //Si el pedido ya estaba CONFIRMADO,
+    //primero devolvemos al inventario
+    //la cantidad anterior.
+    
+    if (pedidoExistente.getEstado().equalsIgnoreCase("CONFIRMADO")) {
+
+        Producto productoAnterior = productoService.buscarPorId(
+            pedidoExistente.getProductoID()
+        );
+
+        if (productoAnterior != null) {
+            productoAnterior.setCantidad(
+                productoAnterior.getCantidad()
+                + pedidoExistente.getCantidad()
+            );
+
+            productoService.guardarProducto(productoAnterior);
+        }
+
+        
+         // El pedido vuelve a PENDIENTE porque
+          //estamos modificando sus datos.
+         
+        pedidoExistente.setEstado("PENDIENTE");
+    }
+
+    
+    //Si el pedido estaba PENDIENTE,
+    //simplemente actualizamos sus datos.
+    
+    pedidoExistente.setCliente(
+        pedidoActualizado.getCliente()
+    );
+
+    pedidoExistente.setProductoID(
+        pedidoActualizado.getProductoID()
+    );
+
+    pedidoExistente.setCantidad(
+        pedidoActualizado.getCantidad()
+    );
+
+    pedidoExistente.setPrioridad(
+        pedidoActualizado.getPrioridad()
+    );
+
+    return pedidoRepository.save(pedidoExistente);
+}
+
+
+
+
+
     // CONFIRMAR PEDIDO
-    // ==========================================
     public Pedido confirmarPedido(Long id) {
 
         Pedido pedido = buscarPedido(id);
@@ -102,9 +185,8 @@ public class PedidoService {
     }
 
 
-    // ==========================================
+
     // CANCELAR PEDIDO
-    // ==========================================
     public Pedido cancelarPedido(Long id) {
 
         Pedido pedido = buscarPedido(id);
@@ -152,9 +234,8 @@ public class PedidoService {
     }
 
 
-    // ==========================================
+
     // DESPACHAR PEDIDO
-    // ==========================================
     public Pedido despacharPedido(Long id) {
 
         Pedido pedido = buscarPedido(id);
@@ -173,18 +254,15 @@ public class PedidoService {
     }
 
 
-    // ==========================================
+
     // LISTAR PEDIDOS
-    // ==========================================
     public List<Pedido> listarPedidos() {
 
         return pedidoRepository.findAll();
     }
 
 
-    // ==========================================
     // BUSCAR PEDIDO
-    // ==========================================
     public Pedido buscarPedido(Long id) {
 
         return pedidoRepository.findById(id)
@@ -196,9 +274,9 @@ public class PedidoService {
     }
 
 
-    // ==========================================
+    
     // PEDIDOS PENDIENTES
-    // ==========================================
+    
     public List<Pedido> pendientes() {
 
         return pedidoRepository.findAll()
@@ -211,9 +289,8 @@ public class PedidoService {
     }
 
 
-    // ==========================================
     // PEDIDOS URGENTES
-    // ==========================================
+    
     public List<Pedido> urgentes() {
 
         return pedidoRepository.findAll()
@@ -226,9 +303,8 @@ public class PedidoService {
     }
 
 
-    // ==========================================
+    
     // BUSCAR POR ESTADO
-    // ==========================================
     public List<Pedido> porEstado(String estado) {
 
         return pedidoRepository.findAll()
@@ -241,9 +317,8 @@ public class PedidoService {
     }
 
 
-    // ==========================================
+
     // SIGUIENTE PEDIDO
-    // ==========================================
     public Pedido siguiente() {
 
         return pedidoRepository.findAll()
@@ -265,9 +340,8 @@ public class PedidoService {
     }
 
 
-    // ==========================================
+
     // VALOR DE PRIORIDAD
-    // ==========================================
     private int valorPrioridad(Pedido pedido) {
 
         return switch (
@@ -283,9 +357,7 @@ public class PedidoService {
     }
 
 
-    // ==========================================
     // PEDIDOS EN RIESGO
-    // ==========================================
     public List<Pedido> enRiesgo() {
 
         List<Pedido> resultado = new ArrayList<>();
@@ -316,9 +388,8 @@ public class PedidoService {
     }
 
 
-    // ==========================================
+
     // RESUMEN DE PEDIDOS
-    // ==========================================
     public PedidoResumen resumen() {
 
         List<Pedido> pedidos =
@@ -370,9 +441,8 @@ public class PedidoService {
     }
 
 
-    // ==========================================
+
     // VALIDACIONES
-    // ==========================================
     private void validarPedido(Pedido pedido) {
 
         if (pedido.getCliente() == null ||
@@ -410,9 +480,8 @@ public class PedidoService {
     }
 
 
-    // ==========================================
+
     // VALIDAR PRIORIDAD
-    // ==========================================
     private boolean prioridadValida(String prioridad) {
 
         return prioridad.equalsIgnoreCase("BAJA")

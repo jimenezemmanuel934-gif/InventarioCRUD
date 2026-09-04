@@ -49,6 +49,33 @@ public class PedidoController {
     }
 
 
+    // ACTUALIZAR PEDIDO
+@PutMapping("/{id}")
+public ResponseEntity<?> actualizarPedido(
+        @PathVariable Long id,
+        @RequestBody Pedido pedido) {
+
+    try {
+
+        Pedido pedidoActualizado =
+                pedidoService.actualizarPedido(id, pedido);
+
+        return ResponseEntity.ok(pedidoActualizado);
+
+    } catch (IllegalArgumentException e) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(e.getMessage());
+
+    } catch (IllegalStateException e) {
+
+        return ResponseEntity
+                .badRequest()
+                .body(e.getMessage());
+    }
+}
+
 
     //LISTAR PEDIDOS
     @GetMapping
