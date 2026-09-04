@@ -3,35 +3,40 @@ package co.edu.sena.inventario.service;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.stereotype.Service;
 
 import co.edu.sena.inventario.model.Pedido;
-import co.edu.sena.inventario.model.Producto;
 import co.edu.sena.inventario.model.PedidoResumen;
+import co.edu.sena.inventario.model.Producto;
+import co.edu.sena.inventario.repository.PedidoRepository;
 
 @Service
 public class PedidoService {
 
-    //SE CREA LA LISTA DE PEDIDOS Y ATOMIC CREA LOS ID DE MODO QUE NO SE REPITAN COMO UN FOR
-    private final List<Pedido> pedidos = new ArrayList<>();
-
+    private final PedidoRepository pedidoRepository;
     private final ProductoService productoService;
 
-    private final AtomicLong siguienteID = new AtomicLong(1);
+    public PedidoService(
+            PedidoRepository pedidoRepository,
+            ProductoService productoService) {
 
-    public PedidoService(ProductoService productoService) {
+        this.pedidoRepository = pedidoRepository;
         this.productoService = productoService;
     }
 
 
-    //CREAR PEDIDO
+    // ==========================================
+    // CREAR PEDIDO
+    // ==========================================
     public Pedido crearPedido(Pedido pedido) {
 
         validarPedido(pedido);
 
-        Producto producto = productoService.buscarPorId(pedido.getProductoID());
+        Producto producto =
+                productoService.buscarPorId(
+                    pedido.getProductoID()
+                );
 
         if (producto == null) {
             throw new IllegalArgumentException(
@@ -39,25 +44,22 @@ public class PedidoService {
             );
         }
 
-        pedido.setId(siguienteID.getAndIncrement());
-
-        //NUEVO PEDIDO = PENDIENTE
+        // El ID lo genera automáticamente la base de datos
         pedido.setEstado("PENDIENTE");
 
-        pedidos.add(pedido);
-
-        return pedido;
+        return pedidoRepository.save(pedido);
     }
 
 
-
-    //CONFIRMAR PEDIDO
+    // ==========================================
+    // CONFIRMAR PEDIDO
+    // ==========================================
     public Pedido confirmarPedido(Long id) {
 
         Pedido pedido = buscarPedido(id);
 
-        //SOLO SE CONFIRMAR SI ESTA PENDIENTE
-        if (!pedido.getEstado().equalsIgnoreCase("PENDIENTE")) {
+        if (!pedido.getEstado()
+                .equalsIgnoreCase("PENDIENTE")) {
 
             throw new IllegalStateException(
                 "Solo se pueden confirmar pedidos PENDIENTES"
@@ -65,7 +67,9 @@ public class PedidoService {
         }
 
         Producto producto =
-                productoService.buscarPorId(pedido.getProductoID());
+                productoService.buscarPorId(
+                    pedido.getProductoID()
+                );
 
         if (producto == null) {
 
@@ -74,7 +78,6 @@ public class PedidoService {
             );
         }
 
-        //VERIFICA SI HAY STOCK DISPONIBLE
         if (producto.getCantidad() < pedido.getCantidad()) {
 
             throw new IllegalStateException(
@@ -83,67 +86,81 @@ public class PedidoService {
             );
         }
 
-        //DESCONTAR INVENTARIO
+
+        // Descontar inventario
         producto.setCantidad(
             producto.getCantidad() - pedido.getCantidad()
         );
 
-        //CAMBIAR ESTADO
+        // Guardar cambio del producto
+        productoService.guardarProducto(producto);
+
+        // Cambiar estado
         pedido.setEstado("CONFIRMADO");
 
-        return pedido;
+        return pedidoRepository.save(pedido);
     }
 
 
-
-    //CANCELAR PEDIDO
+    // ==========================================
+    // CANCELAR PEDIDO
+    // ==========================================
     public Pedido cancelarPedido(Long id) {
 
         Pedido pedido = buscarPedido(id);
 
-        //NO SE CANCELA DOS VECES
-        if (pedido.getEstado().equalsIgnoreCase("CANCELADO")) {
+        if (pedido.getEstado()
+                .equalsIgnoreCase("CANCELADO")) {
 
             throw new IllegalStateException(
                 "El pedido ya esta cancelado"
             );
         }
 
-        //NO SE PUEDE CANCELAR YA DESPACHADO
-        if (pedido.getEstado().equalsIgnoreCase("DESPACHADO")) {
+        if (pedido.getEstado()
+                .equalsIgnoreCase("DESPACHADO")) {
 
             throw new IllegalStateException(
                 "Pedido Despachado no se puede cancelar"
             );
         }
 
-        //SI SE CANCELA CUANDO YA ESTABA CONFIRMADO DEVOLVER LAS UNIDADES DE PRODUCTO
-        if (pedido.getEstado().equalsIgnoreCase("CONFIRMADO")) {
+        // Si estaba confirmado,
+        // devolver las unidades al inventario
+        if (pedido.getEstado()
+                .equalsIgnoreCase("CONFIRMADO")) {
 
             Producto producto =
                     productoService.buscarPorId(
                         pedido.getProductoID()
                     );
 
-            producto.setCantidad(
-                producto.getCantidad() + pedido.getCantidad()
-            );
+            if (producto != null) {
+
+                producto.setCantidad(
+                    producto.getCantidad()
+                    + pedido.getCantidad()
+                );
+
+                productoService.guardarProducto(producto);
+            }
         }
 
         pedido.setEstado("CANCELADO");
 
-        return pedido;
+        return pedidoRepository.save(pedido);
     }
 
 
-
-    //DESPACHAR PEDIDO
+    // ==========================================
+    // DESPACHAR PEDIDO
+    // ==========================================
     public Pedido despacharPedido(Long id) {
 
         Pedido pedido = buscarPedido(id);
 
-        //SOLO DESPACHA CONFIRMADOS
-        if (!pedido.getEstado().equalsIgnoreCase("CONFIRMADO")) {
+        if (!pedido.getEstado()
+                .equalsIgnoreCase("CONFIRMADO")) {
 
             throw new IllegalStateException(
                 "Solo se pueden despachar pedidos CONFIRMADOS"
@@ -152,25 +169,25 @@ public class PedidoService {
 
         pedido.setEstado("DESPACHADO");
 
-        return pedido;
+        return pedidoRepository.save(pedido);
     }
 
 
-
-    //LISTAR PEDIDOS
+    // ==========================================
+    // LISTAR PEDIDOS
+    // ==========================================
     public List<Pedido> listarPedidos() {
 
-        return pedidos;
+        return pedidoRepository.findAll();
     }
 
 
-
-    //BUSCAR PEDIDO
+    // ==========================================
+    // BUSCAR PEDIDO
+    // ==========================================
     public Pedido buscarPedido(Long id) {
 
-        return pedidos.stream()
-            .filter(p -> p.getId().equals(id))
-            .findFirst()
+        return pedidoRepository.findById(id)
             .orElseThrow(() ->
                 new IllegalArgumentException(
                     "Pedido no encontrado"
@@ -179,50 +196,61 @@ public class PedidoService {
     }
 
 
-
-
-    //PEDIDOS PENDIENTES
+    // ==========================================
+    // PEDIDOS PENDIENTES
+    // ==========================================
     public List<Pedido> pendientes() {
 
-        return pedidos.stream()
+        return pedidoRepository.findAll()
+            .stream()
             .filter(p ->
-                p.getEstado().equalsIgnoreCase("PENDIENTE")
+                p.getEstado()
+                    .equalsIgnoreCase("PENDIENTE")
             )
             .toList();
     }
 
 
-
-    //PEDIDOS URGENTES
+    // ==========================================
+    // PEDIDOS URGENTES
+    // ==========================================
     public List<Pedido> urgentes() {
 
-        return pedidos.stream()
+        return pedidoRepository.findAll()
+            .stream()
             .filter(p ->
-                p.getPrioridad().equalsIgnoreCase("URGENTE")
+                p.getPrioridad()
+                    .equalsIgnoreCase("URGENTE")
             )
             .toList();
     }
 
 
-
-    //BUSCAR POR ESTADO
+    // ==========================================
+    // BUSCAR POR ESTADO
+    // ==========================================
     public List<Pedido> porEstado(String estado) {
 
-        return pedidos.stream()
+        return pedidoRepository.findAll()
+            .stream()
             .filter(p ->
-                p.getEstado().equalsIgnoreCase(estado)
+                p.getEstado()
+                    .equalsIgnoreCase(estado)
             )
             .toList();
     }
 
 
-
-    //SIGUIENTE PEDIDO
+    // ==========================================
+    // SIGUIENTE PEDIDO
+    // ==========================================
     public Pedido siguiente() {
 
-        return pedidos.stream()
+        return pedidoRepository.findAll()
+            .stream()
             .filter(p ->
-                p.getEstado().equalsIgnoreCase("PENDIENTE")
+                p.getEstado()
+                    .equalsIgnoreCase("PENDIENTE")
             )
             .sorted(
                 Comparator
@@ -237,8 +265,9 @@ public class PedidoService {
     }
 
 
-
-    //VALOR DE PRIORIDAD
+    // ==========================================
+    // VALOR DE PRIORIDAD
+    // ==========================================
     private int valorPrioridad(Pedido pedido) {
 
         return switch (
@@ -254,13 +283,15 @@ public class PedidoService {
     }
 
 
-
-    //PEDIDOS EN RIESGO
+    // ==========================================
+    // PEDIDOS EN RIESGO
+    // ==========================================
     public List<Pedido> enRiesgo() {
 
         List<Pedido> resultado = new ArrayList<>();
 
-        for (Pedido pedido : pedidos) {
+        for (Pedido pedido :
+                pedidoRepository.findAll()) {
 
             if (!pedido.getEstado()
                     .equalsIgnoreCase("PENDIENTE")) {
@@ -274,7 +305,8 @@ public class PedidoService {
                 );
 
             if (producto == null ||
-                producto.getCantidad() < pedido.getCantidad()) {
+                producto.getCantidad()
+                    < pedido.getCantidad()) {
 
                 resultado.add(pedido);
             }
@@ -284,31 +316,39 @@ public class PedidoService {
     }
 
 
-
-    //RESUMEN DE PEDIDOS
+    // ==========================================
+    // RESUMEN DE PEDIDOS
+    // ==========================================
     public PedidoResumen resumen() {
+
+        List<Pedido> pedidos =
+                pedidoRepository.findAll();
 
         long pendientes = pedidos.stream()
             .filter(p ->
-                p.getEstado().equalsIgnoreCase("PENDIENTE")
+                p.getEstado()
+                    .equalsIgnoreCase("PENDIENTE")
             )
             .count();
 
         long confirmados = pedidos.stream()
             .filter(p ->
-                p.getEstado().equalsIgnoreCase("CONFIRMADO")
+                p.getEstado()
+                    .equalsIgnoreCase("CONFIRMADO")
             )
             .count();
 
         long despachados = pedidos.stream()
             .filter(p ->
-                p.getEstado().equalsIgnoreCase("DESPACHADO")
+                p.getEstado()
+                    .equalsIgnoreCase("DESPACHADO")
             )
             .count();
 
         long cancelados = pedidos.stream()
             .filter(p ->
-                p.getEstado().equalsIgnoreCase("CANCELADO")
+                p.getEstado()
+                    .equalsIgnoreCase("CANCELADO")
             )
             .count();
 
@@ -330,12 +370,14 @@ public class PedidoService {
     }
 
 
-
-    //VALIDACIONES
+    // ==========================================
+    // VALIDACIONES
+    // ==========================================
     private void validarPedido(Pedido pedido) {
 
         if (pedido.getCliente() == null ||
-                pedido.getCliente().trim().isEmpty()) {
+                pedido.getCliente()
+                    .trim().isEmpty()) {
 
             throw new IllegalArgumentException(
                 "El cliente es obligatorio"
@@ -368,8 +410,9 @@ public class PedidoService {
     }
 
 
-    
-    //VALIDAR PRIORIDAD
+    // ==========================================
+    // VALIDAR PRIORIDAD
+    // ==========================================
     private boolean prioridadValida(String prioridad) {
 
         return prioridad.equalsIgnoreCase("BAJA")

@@ -104,7 +104,6 @@ public class PedidoController {
     }
 
 
-
     //CANCELAR PEDIDO
     @PutMapping("/{id}/cancelar")
     public ResponseEntity<?> cancelarPedido(@PathVariable Long id) {

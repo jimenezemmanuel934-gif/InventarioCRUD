@@ -16,32 +16,37 @@ public class ProductoService {
         this.productoRepository = productoRepository;
     }
 
-    //Consultar Todos
+    // Guardar o actualizar producto
+    public Producto guardarProducto(Producto producto) {
+        return productoRepository.save(producto);
+    }
+
+    // Consultar todos
     public List<Producto> listarProductos() {
         return productoRepository.findAll();
     }
 
-    //Buscar por ID
+    // Buscar por ID
     public Producto buscarPorId(Long id) {
         return productoRepository.findById(id).orElse(null);
     }
 
-    //Crear Producto
+    // Crear producto
     public void agregarProducto(Producto producto) {
-        if (producto.getId() !=null && productoRepository.existsById(producto.getId())) {
+        if (producto.getId() != null && productoRepository.existsById(producto.getId())) {
 
             throw new IllegalArgumentException(
                 "Ya existe un producto con el ID: " + producto.getId()
             );
         }
+
         productoRepository.save(producto);
     }
 
-    //Eliminar producto
+    // Eliminar producto
     public void eliminarProducto(Long id) {
         if (productoRepository.existsById(id)) {
             productoRepository.deleteById(id);
         }
     }
-
 }
