@@ -49,6 +49,7 @@ public class PedidoController {
     }
 
 
+
     // ACTUALIZAR PEDIDO
 @PutMapping("/{id}")
 public ResponseEntity<?> actualizarPedido(
@@ -75,6 +76,7 @@ public ResponseEntity<?> actualizarPedido(
                 .body(e.getMessage());
     }
 }
+
 
 
     //LISTAR PEDIDOS
@@ -131,6 +133,7 @@ public ResponseEntity<?> actualizarPedido(
     }
 
 
+
     //CANCELAR PEDIDO
     @PutMapping("/{id}/cancelar")
     public ResponseEntity<?> cancelarPedido(@PathVariable Long id) {
@@ -150,8 +153,8 @@ public ResponseEntity<?> actualizarPedido(
         } catch (IllegalStateException e) {
 
             return ResponseEntity
-                    .badRequest()
-                    .body(e.getMessage());
+                .badRequest()
+                .body(e.getMessage());
         }
     }
 
